@@ -60,22 +60,33 @@ class TaskManager {
     this.todo = [];
     this.progress = [];
     this.done = [];
+
     this.loadTasksFromLocalStorage();
   }
 
   loadTasksFromLocalStorage() {
-    const data = JSON.parse(localStorage.getItem("taskData"));
-    const addTask = (taskData, list) => {
-      const { id, title, description, createdAt, modifiedAt } = taskData;
-      const task = new Task(title, description, new Date(createdAt));
-      task.id = id;
-      task.modifiedAt = new Date(modifiedAt);
-      list.push(task);
-    };
+    if (typeof localStorage !== "undefined") {
+      const data = JSON.parse(localStorage.getItem("taskData"));
+      if (data) {
+        const addTask = (taskData, list) => {
+          const { id, title, description, status, createdAt, modifiedAt } =
+            taskData;
+          const task = new Task(
+            title,
+            description,
+            new Date(createdAt),
+            status
+          );
+          task.id = id;
+          task.modifiedAt = new Date(modifiedAt);
+          list.push(task);
+        };
 
-    data.todo.forEach((taskData) => addTask(taskData, this.todo));
-    data.progress.forEach((taskData) => addTask(taskData, this.progress));
-    data.done.forEach((taskData) => addTask(taskData, this.done));
+        data.todo.forEach((taskData) => addTask(taskData, this.todo));
+        data.progress.forEach((taskData) => addTask(taskData, this.progress));
+        data.done.forEach((taskData) => addTask(taskData, this.done));
+      }
+    }
   }
 
   addNewTask(newTask) {
@@ -234,9 +245,10 @@ class TaskManager {
   }
 }
 
-const taskManager = new TaskManager();
+/////////////////////////////////////////////////////////////
 
 document.addEventListener("DOMContentLoaded", () => {
+  const taskManager = new TaskManager();
   const modal = document.getElementById("todoModal");
   const openCreateModalBtn = document.getElementById("openCreateModalBtn");
   const closeModalBtn = document.querySelector(".close");
@@ -314,30 +326,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const taskDiv = document.createElement("div");
     taskDiv.textContent = task.title;
+    taskDiv.addEventListener("click", () => openModal("edit", task));
     li.appendChild(taskDiv);
 
     if (task.status === TaskStatus.TODO) {
+      console.log("task.status", task.status);
       const rightTriangleButton = document.createElement("button");
+      rightTriangleButton.addEventListener("click", moveNextBtnClickHandler);
       rightTriangleButton.classList.add("right-triangle-button");
-      rightTriangleButton.addEventListener("click", () => {});
+
       li.appendChild(rightTriangleButton);
     } else if (task.status === TaskStatus.PROGRESS) {
+      console.log("task.status", task.status);
       const leftTriangleButton = document.createElement("button");
+      leftTriangleButton.addEventListener("click", movePrevBtnClickHandler);
       leftTriangleButton.classList.add("left-triangle-button");
       li.prepend(leftTriangleButton);
 
       const rightTriangleButton = document.createElement("button");
       rightTriangleButton.classList.add("right-triangle-button");
+      rightTriangleButton.addEventListener("click", moveNextBtnClickHandler);
       li.appendChild(rightTriangleButton);
     } else if (task.status === TaskStatus.DONE) {
       const leftTriangleButton = document.createElement("button");
-      button.classList.add("left-triangle-button");
+      leftTriangleButton.addEventListener("click", movePrevBtnClickHandler);
+      leftTriangleButton.classList.add("left-triangle-button");
       li.prepend(leftTriangleButton);
     }
 
-    li.addEventListener("click", () => openModal("edit", task));
-
-    list.prepend(li); // Add the task to the front of the list
+    list.prepend(li);
   };
 
   const removeTaskFromDOM = (taskId) => {
@@ -345,8 +362,29 @@ document.addEventListener("DOMContentLoaded", () => {
     taskElement?.remove();
   };
 
-  const movePrevBtnClickHandler = (taskId) => {
+  const movePrevBtnClickHandler = (event) => {
+    const taskId = event.target.closest("li").id;
     const task = taskManager.moveTaskStatusPrev(taskId);
+    removeTaskFromDOM(task.id);
+
+    switch (task.status) {
+      case TaskStatus.TODO:
+        addTaskToDOM(task, todoList);
+        break;
+      case TaskStatus.PROGRESS:
+        addTaskToDOM(task, progressList);
+        break;
+      case TaskStatus.DONE:
+        addTaskToDOM(task, doneList);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const moveNextBtnClickHandler = (event) => {
+    const taskId = event.target.closest("li").id;
+    const task = taskManager.moveTaskStatusNext(taskId);
     removeTaskFromDOM(task.id);
 
     switch (task.status) {
@@ -381,4 +419,10 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     deleteTaskBtnClickHandler();
   });
+
+  console.log(taskManager);
+
+  taskManager.todo.forEach((task) => addTaskToDOM(task, todoList));
+  taskManager.progress.forEach((task) => addTaskToDOM(task, progressList));
+  taskManager.done.forEach((task) => addTaskToDOM(task, doneList));
 });
