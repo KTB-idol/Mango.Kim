@@ -279,7 +279,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         break;
       default:
-        console.log("Unknown modal type");
         break;
     }
   };
