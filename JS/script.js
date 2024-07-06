@@ -40,6 +40,16 @@ class Task {
     this.modifiedAt = createdAt;
   }
 
+  updateTaskStatusToNext() {
+    this.status = TaskStatus.getNext(this.status);
+    this.modifiedAt = new Date();
+  }
+
+  updateTaskStatusToPrev() {
+    this.status = TaskStatus.getPrev(this.status);
+    this.modifiedAt = new Date();
+  }
+
   updateTask(title, description) {
     this.title = title;
     this.description = description;
@@ -95,13 +105,10 @@ class TaskManager {
   }
 
   moveTaskStatusNext(taskId) {
-    const task =
-      this.getTaskById(this.todo, taskId) ||
-      this.getTaskById(this.progress, taskId);
+    const task = this.getTaskById(taskId);
     if (task) {
       const currentStatus = task.status;
-      const nextStatus = TaskStatus.getNext(currentStatus);
-      task.status = nextStatus;
+      task.updateTaskStatusToNext();
 
       switch (currentStatus) {
         case TaskStatus.TODO:
@@ -114,15 +121,15 @@ class TaskManager {
           break;
       }
 
-      switch (nextStatus) {
+      switch (task.status) {
         case TaskStatus.TODO:
-          this.todo.unshift(task);
+          this.todo.push(task);
           break;
         case TaskStatus.PROGRESS:
-          this.progress.unshift(task);
+          this.progress.push(task);
           break;
         case TaskStatus.DONE:
-          this.done.unshift(task);
+          this.done.push(task);
           break;
         default:
           break;
@@ -134,13 +141,10 @@ class TaskManager {
   }
 
   moveTaskStatusPrev(taskId) {
-    const task =
-      this.getTaskById(this.progress, taskId) ||
-      this.getTaskById(this.done, taskId);
+    const task = this.getTaskById(taskId);
     if (task) {
       const currentStatus = task.status;
-      const prevStatus = TaskStatus.getPrev(currentStatus);
-      task.status = prevStatus;
+      task.updateTaskStatusToPrev();
 
       switch (currentStatus) {
         case TaskStatus.PROGRESS:
@@ -153,12 +157,12 @@ class TaskManager {
           break;
       }
 
-      switch (prevStatus) {
+      switch (task.status) {
         case TaskStatus.TODO:
-          this.todo.unshift(task);
+          this.todo.push(task);
           break;
         case TaskStatus.PROGRESS:
-          this.progress.unshift(task);
+          this.progress.push(task);
           break;
         default:
           break;
@@ -169,29 +173,26 @@ class TaskManager {
     return task;
   }
 
-  updateTask(list, taskId, title, description) {
-    const task = list.find((task) => task.id === taskId);
+  updateTaskById(taskId, title, description) {
+    const task = this.getTaskById(taskId);
+    let list;
+    switch (task.status) {
+      case TaskStatus.TODO:
+        list = this.todo;
+        break;
+      case TaskStatus.PROGRESS:
+        list = this.progress;
+        break;
+      case TaskStatus.DONE:
+        list = this.done;
+        break;
+      default:
+        return;
+    }
     if (task) {
       task.updateTask(title, description);
-      const index = list.indexOf(task);
-      if (index > -1) {
-        list.splice(index, 1);
-      }
-      list.unshift(task);
       this.saveToLocalStorage();
     }
-  }
-
-  updateTodoTask(taskId, title, description) {
-    this.updateTask(this.todo, taskId, title, description);
-  }
-
-  updateProgressTask(taskId, title, description) {
-    this.updateTask(this.progress, taskId, title, description);
-  }
-
-  updateDoneTask(taskId, title, description) {
-    this.updateTask(this.done, taskId, title, description);
   }
 
   removeTaskFromList(list, task) {
@@ -203,7 +204,7 @@ class TaskManager {
   }
 
   removeTaskById(taskId) {
-    const task = list.find((task) => task.id === taskId);
+    const task = this.getTaskById(taskId);
     switch (task.status) {
       case TaskStatus.TODO:
         this.removeTaskFromList(this.todo, task);
@@ -219,20 +220,12 @@ class TaskManager {
     }
   }
 
-  getTaskById(list, taskId) {
-    return list.find((task) => task.id === taskId);
-  }
-
-  getTodoById(taskId) {
-    return this.getTaskById(this.todo, taskId);
-  }
-
-  getProgressById(taskId) {
-    return this.getTaskById(this.progress, taskId);
-  }
-
-  getDoneById(taskId) {
-    return this.getTaskById(this.done, taskId);
+  getTaskById(taskId) {
+    const task =
+      this.todo.find((task) => task.id === taskId) ||
+      this.progress.find((task) => task.id === taskId) ||
+      this.done.find((task) => task.id === taskId);
+    return task;
   }
 
   saveToLocalStorage() {
@@ -308,9 +301,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const editTaskBtnClickHandler = () => {
     const title = taskTitle.value;
     const description = taskDescription.value;
-    const taskElement = document.getElementById(selectedTaskId);
-
-    taskElement.querySelector("div").textContent = title;
+    taskManager.updateTaskById(selectedTaskId, title, description);
+    refreshTasks();
     closeModal();
   };
 
@@ -326,18 +318,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const taskDiv = document.createElement("div");
     taskDiv.textContent = task.title;
-    taskDiv.addEventListener("click", () => openModal("edit", task));
+    taskDiv.addEventListener("click", (event) => {
+      const destTaskId = event.target.closest("li").id;
+      const destTask = taskManager.getTaskById(destTaskId);
+      openModal("edit", destTask);
+    });
     li.appendChild(taskDiv);
 
     if (task.status === TaskStatus.TODO) {
-      console.log("task.status", task.status);
       const rightTriangleButton = document.createElement("button");
       rightTriangleButton.addEventListener("click", moveNextBtnClickHandler);
       rightTriangleButton.classList.add("right-triangle-button");
-
       li.appendChild(rightTriangleButton);
     } else if (task.status === TaskStatus.PROGRESS) {
-      console.log("task.status", task.status);
       const leftTriangleButton = document.createElement("button");
       leftTriangleButton.addEventListener("click", movePrevBtnClickHandler);
       leftTriangleButton.classList.add("left-triangle-button");
@@ -354,7 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
       li.prepend(leftTriangleButton);
     }
 
-    list.prepend(li);
+    list.appendChild(li); // Append to the end to maintain order
   };
 
   const removeTaskFromDOM = (taskId) => {
@@ -365,41 +358,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const movePrevBtnClickHandler = (event) => {
     const taskId = event.target.closest("li").id;
     const task = taskManager.moveTaskStatusPrev(taskId);
-    removeTaskFromDOM(task.id);
-
-    switch (task.status) {
-      case TaskStatus.TODO:
-        addTaskToDOM(task, todoList);
-        break;
-      case TaskStatus.PROGRESS:
-        addTaskToDOM(task, progressList);
-        break;
-      case TaskStatus.DONE:
-        addTaskToDOM(task, doneList);
-        break;
-      default:
-        break;
-    }
+    refreshTasks();
   };
 
   const moveNextBtnClickHandler = (event) => {
     const taskId = event.target.closest("li").id;
     const task = taskManager.moveTaskStatusNext(taskId);
-    removeTaskFromDOM(task.id);
+    refreshTasks();
+  };
 
-    switch (task.status) {
-      case TaskStatus.TODO:
-        addTaskToDOM(task, todoList);
-        break;
-      case TaskStatus.PROGRESS:
-        addTaskToDOM(task, progressList);
-        break;
-      case TaskStatus.DONE:
-        addTaskToDOM(task, doneList);
-        break;
-      default:
-        break;
-    }
+  const refreshTasks = () => {
+    todoList.innerHTML = "";
+    progressList.innerHTML = "";
+    doneList.innerHTML = "";
+
+    taskManager.todo.forEach((task) => addTaskToDOM(task, todoList));
+    taskManager.progress.forEach((task) => addTaskToDOM(task, progressList));
+    taskManager.done.forEach((task) => addTaskToDOM(task, doneList));
   };
 
   openCreateModalBtn.onclick = () => openModal("add");
@@ -420,9 +395,5 @@ document.addEventListener("DOMContentLoaded", () => {
     deleteTaskBtnClickHandler();
   });
 
-  console.log(taskManager);
-
-  taskManager.todo.forEach((task) => addTaskToDOM(task, todoList));
-  taskManager.progress.forEach((task) => addTaskToDOM(task, progressList));
-  taskManager.done.forEach((task) => addTaskToDOM(task, doneList));
+  refreshTasks();
 });
