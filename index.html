@@ -1,10 +1,64 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>TODO BOARD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="CSS/common.css">
+    <link rel="stylesheet" href="CSS/header.css">
+    <link rel="stylesheet" href="CSS/todo.css">
+    <link rel="stylesheet" href="CSS/modal.css">
 </head>
+
 <body>
-    <header>THIS IS TODO BOARD</header>
-    <p>Welcome to the TODO BOARD!.</p>
+    <header class="title">TODO BOARD</header>
+    <button id="openCreateModalBtn" class="addTaskBtn button">Add Task</button>
+    <div class="container">
+        <div class="taskWrapper todo">
+            <header class="todoHeader">
+                <h2>TODO</h2>
+            </header>
+            <ul id="todoList" class="taskList">
+            </ul>
+        </div>
+        <div class="taskWrapper">
+            <header>
+                <h2>IN-PROGRESS</h2>
+            </header>
+            <ul id="progressList" class="taskList">
+                <li>
+                    <button class="left-triangle-button"></button>
+                    <div>Task 1</div>
+                    <button class="right-triangle-button"></button>
+                </li>
+            </ul>
+        </div>
+        <div class="taskWrapper done">
+            <header>
+                <h2>Done</h2>
+            </header>
+            <ul id="doneList" class="taskList">
+            </ul>
+        </div>
+    </div>
+
+    <button id="openEditModalBtn">Open Modal</button>
+
+    <div id="todoModal" class="modal">
+        <div class="modal-content-wrapper">
+            <span class="close">&times;</span>
+            <form id="modalForm" class="modal-form">
+                <input type="text" id="taskTitle" placeholder="Task Name">
+                <input type="text" id="taskDescription" placeholder="Task Description">
+                <button id="addTaskBtn" class="button">Add</button>
+                <button id="editTaskBtn" class="button">Edit</button>
+                <button id="deleteTaskBtn" class="button">Delete</button>
+            </form>
+        </div>
+    </div>
+
     <p><a href="about.php">About</a></p>
+    <footer>this is footer</footer>
+
+    <script src="JS/script.js"></script>
 </html>
