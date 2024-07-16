@@ -3,9 +3,39 @@
  */
 package org.example;
 
+import org.example.strategy.DiscountContext;
+import org.example.strategy.DiscountStrategy;
+import org.example.strategy.FixedDiscountStrategy;
+import org.example.strategy.PercentDiscountStrategy;
+
 public class App {
 
     public static void main(String[] args) {
-        System.out.println("hellow world!");
+        System.out.println("\n");
+        Item item = new Item("sample", 100);
+        ItemManager.save(item);
+        System.out.println("Item insert successfully");
+
+        System.out.println("\ntrying to get Item(sample)");
+        item = ItemManager.findItemByItemName("sample");
+        System.out.println(item.toString());
+
+        DiscountContext discountContext = new DiscountContext();
+
+        System.out.println("<--- Percent discount by 10%. --->");
+        DiscountStrategy percentDiscountStrategy = new PercentDiscountStrategy(0.1);
+        discountContext.setDiscountStrategy(percentDiscountStrategy);
+        System.out.print(item.getPrice() + " -> ");
+        item = discountContext.executeDiscount(item);
+        System.out.println(item.getPrice());
+        System.out.println(item.toString());
+
+        System.out.println("\n<--- Fixed discount by 25 units. --->");
+        DiscountStrategy fixedDiscount = new FixedDiscountStrategy(25);
+        discountContext.setDiscountStrategy(fixedDiscount);
+        System.out.print(item.getPrice() + " -> ");
+        item = discountContext.executeDiscount(item);
+        System.out.println(item.getPrice());
+        System.out.println(item.toString());
     }
 }
